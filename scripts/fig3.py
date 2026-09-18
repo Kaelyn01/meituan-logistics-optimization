@@ -1,5 +1,6 @@
-"""Fix Figure 3: show T-sensitivity for all 5 cities in one figure (2x3 layout)."""
+"""Figure 3: global top-10 solutions versus uniform-T baselines."""
 
+import json
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/..'))
@@ -12,97 +13,88 @@ from optimization.inventory_optimizer import calculate_city_total_cost
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.size'] = 9
 
-COLOR_STORAGE = '#E07A5F'
-COLOR_TRANSPORT = '#3D405B'
-COLOR_TOTAL = '#81B29A'
+COLOR_OPTIMAL = '#81B29A'
+COLOR_BASELINE = '#D3D3D3'
 
-cities = ['A', 'B', 'C', 'D', 'E']
-
-import json
+# Load top 10 solutions and optimal cost from central data
 with open('data/results.json', 'r') as f:
-    _data = json.load(f)
-_optimal_T_map = {c: _data['cities'][c]['optimal_T'] for c in cities}
-T_range = np.arange(1, 8)
+    data = json.load(f)
 
-fig, axes = plt.subplots(2, 3, figsize=(12, 8), dpi=300)
-axes = axes.flatten()
+top_solutions = data['top_solutions']
+top_costs = [sol['total_cost'] for sol in top_solutions[:10]]
+optimal_cost = data['global_optimal']['total_cost']
 
-for idx, city in enumerate(cities):
-    ax = axes[idx]
-    storage = []
-    transport = []
-    total = []
-    for T in T_range:
-        res = calculate_city_total_cost(city, T)
-        storage.append(res['storage_cost'])
-        transport.append(res['transport_cost'])
-        total.append(res['total_cost'])
+# Compute uniform-T baselines
+uniform_costs = {}
+for T in [1, 3, 7]:
+    uniform_costs[T] = sum(calculate_city_total_cost(c, T)['total_cost'] for c in ['A', 'B', 'C', 'D', 'E'])
 
-    ax.plot(T_range, storage, 'o-', color=COLOR_STORAGE, label='Storage Cost', linewidth=2, markersize=6)
-    ax.plot(T_range, transport, 's-', color=COLOR_TRANSPORT, label='Transport Cost', linewidth=2, markersize=6)
-    ax.plot(T_range, total, '^--', color=COLOR_TOTAL, label='Total Cost', linewidth=2.5, markersize=8)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.5, 5), dpi=300)
+plt.subplots_adjust(wspace=0.35)
 
-    # Optimal marker
-    optimal_T = _optimal_T_map[city]
-    opt_total = total[optimal_T - 1]
-    ax.axvline(x=optimal_T, color='gray', linestyle='--', alpha=0.6, linewidth=1)
-    ax.plot(optimal_T, opt_total, '*', color='green', markersize=14, zorder=5)
+# --- Left: Top 10 solutions ---
+y_pos = np.arange(10, 0, -1)
+colors = [COLOR_OPTIMAL] + [COLOR_BASELINE] * 9
+bars1 = ax1.barh(y_pos, top_costs, color=colors, edgecolor='white', height=0.6)
 
-    # Compute text position: place it near the top of the subplot in an empty corner
-    y_top = max(total) * 1.05
-    if idx == 0:  # City A: monotone ascending, text far upper-right
-        tx = 5.5
-    elif idx == 1:  # City B: monotone ascending, text far upper-right
-        tx = 5.5
-    elif idx == 2:  # City C: weak U, text upper-left
-        tx = 1.3
-    elif idx == 3:  # City D: U-shape, text upper-right
-        tx = 5.8
-    else:  # City E: U-shape, optimal at T=6 (right side), text upper-left
-        tx = 1.5
+# Annotations: cost difference
+for i, (cost, y) in enumerate(zip(top_costs, y_pos)):
+    diff = cost - optimal_cost
+    if i == 0:
+        ax1.text(cost + 8, y, f'{cost:.0f}', va='center', ha='left', fontsize=9, fontweight='bold', color='darkgreen')
+    else:
+        ax1.text(cost + 8, y, f'+{diff:.0f}', va='center', ha='left', fontsize=9, color='gray')
 
-    ax.annotate(f'Optimal\nT*={optimal_T}', xy=(optimal_T, opt_total),
-                xytext=(tx, y_top),
-                fontsize=9, color='green', fontweight='bold',
-                arrowprops=dict(arrowstyle='->', color='green', lw=1,
-                                connectionstyle='arc3,rad=0.15'))
+ax1.set_yticks(y_pos)
+ax1.set_yticklabels([f'#{i}' for i in range(1, 11)], fontsize=9)
+ax1.set_xlabel('Total Daily Cost (CNY)', fontsize=10)
+ax1.set_xlim(24850, 25040)
+ax1.tick_params(axis='x', labelsize=8, colors='dimgray')
+ax1.tick_params(axis='y', labelsize=9, colors='black')
+ax1.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x):,}'))
 
-    # Per-subplot title
-    pad = 15 if city in ['D', 'E'] else 8
-    ax.set_title(f'City {city}', fontsize=10, fontweight='bold', pad=pad)
-    ax.set_xlabel('Replenishment Cycle T (days)', fontsize=9)
-    ax.set_ylabel('Daily Cost (CNY)', fontsize=9)
-    ax.set_xticks(T_range)
+ax1.spines['top'].set_visible(False)
+ax1.spines['right'].set_visible(False)
+ax1.spines['left'].set_linewidth(0.8)
+ax1.spines['bottom'].set_linewidth(0.8)
 
-    # Tick hierarchy
-    ax.tick_params(axis='y', labelsize=7, colors='dimgray')
-    ax.tick_params(axis='x', labelsize=8, colors='black')
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x):,}'))
+# Title top-left for left subplot
+ax1.text(0.02, 1.02, '(d) Top 10 Joint Optimization Solutions',
+         transform=ax1.transAxes, fontsize=10, fontweight='bold', va='top', ha='left')
 
-    # Spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_linewidth(0.8)
-    ax.spines['bottom'].set_linewidth(0.8)
+# --- Right: Uniform-T baseline comparison ---
+labels = ['Global\nOptimal', 'All T=1', 'All T=3', 'All T=7']
+values = [optimal_cost, uniform_costs[1], uniform_costs[3], uniform_costs[7]]
+colors2 = [COLOR_OPTIMAL, COLOR_BASELINE, COLOR_BASELINE, COLOR_BASELINE]
 
-    # Y-limit with some padding
-    ax.set_ylim(0, max(total) * 1.25)
+bars2 = ax2.bar(labels, values, color=colors2, edgecolor='white', width=0.6)
 
-# Remove the unused 6th subplot to make room for a bottom legend
-fig.delaxes(axes[-1])
+for i, (label, val) in enumerate(zip(labels, values)):
+    diff = val - optimal_cost
+    if i == 0:
+        ax2.text(i, val - 1200, f'{val:.0f}', ha='center', va='top', fontsize=11, fontweight='bold', color='white')
+    else:
+        ax2.text(i, val - 1500, f'+{diff:.0f}', ha='center', va='top', fontsize=10, fontweight='bold', color='white')
 
-# Overall title at top-left of the figure
-fig.text(0.02, 0.98, '(c) Cost Sensitivity to Replenishment Cycle by City',
-         fontsize=11, fontweight='bold', va='top', ha='left')
+ax2.set_ylabel('Total Daily Cost (CNY)', fontsize=10)
+ax2.tick_params(axis='y', labelsize=8, colors='dimgray')
+ax2.tick_params(axis='x', labelsize=9, colors='black')
+ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x):,}'))
 
-# Shared legend at bottom center, horizontal layout
-handles, labels = axes[0].get_legend_handles_labels()
-fig.legend(handles, labels, loc='lower center', ncol=3, frameon=False,
-           fontsize=11, bbox_to_anchor=(0.5, 0.02), columnspacing=2.5,
-           handletextpad=1.0)
+ax2.spines['top'].set_visible(False)
+ax2.spines['right'].set_visible(False)
+ax2.spines['left'].set_linewidth(0.8)
+ax2.spines['left'].set_bounds(0, 45000)
+ax2.spines['bottom'].set_linewidth(0.8)
 
-plt.tight_layout(rect=[0, 0.06, 1, 0.97])
+# Title top-left for right subplot
+ax2.text(0.02, 1.02, '(e) Comparison with Uniform-T Strategies',
+         transform=ax2.transAxes, fontsize=10, fontweight='bold', va='top', ha='left')
+
+ax2.set_ylim(0, 46000)
+
+plt.tight_layout()
 plt.savefig('figures/fig3.pdf', bbox_inches='tight', pad_inches=0.05)
 plt.savefig('figures/fig3.png', dpi=300, bbox_inches='tight', pad_inches=0.05)
 plt.close()
-print('Fig 3 (all cities) saved.')
+print('Figure 3 saved.')

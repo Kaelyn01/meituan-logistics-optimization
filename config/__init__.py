@@ -1,22 +1,22 @@
 """
-配置模块
-提供所有固定参数、数据（城市/站点/车型）的访问接口
+Configuration module.
+Provides access to all fixed parameters and datasets (cities / stations / vehicles).
 """
 
 from .parameters import (
-    # 数据结构
+    # Data structures
     VEHICLE_TYPES,
     CITIES,
     STATIONS_PER_CITY,
     CITY_PARAMETERS,
     STATION_DEMANDS,
-    
-    # 约束条件
+
+    # Constraints
     MAX_STATIONS_PER_TRIP,
     LEAD_TIME,
     STORAGE_CONVERSION,
-    
-    # 辅助函数
+
+    # Accessor functions
     get_daily_demand,
     get_city_total_demand,
     get_station_count,
@@ -26,19 +26,19 @@ from .parameters import (
 )
 
 __all__ = [
-    # 数据结构
+    # Data structures
     'VEHICLE_TYPES',
     'CITIES',
     'STATIONS_PER_CITY',
     'CITY_PARAMETERS',
     'STATION_DEMANDS',
-    
-    # 约束条件
+
+    # Constraints
     'MAX_STATIONS_PER_TRIP',
     'LEAD_TIME',
     'STORAGE_CONVERSION',
-    
-    # 辅助函数
+
+    # Accessor functions
     'get_daily_demand',
     'get_city_total_demand',
     'get_station_count',

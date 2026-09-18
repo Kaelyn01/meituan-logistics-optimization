@@ -1,25 +1,25 @@
-# 车辆参数
+# Vehicle fleet parameters
 VEHICLE_TYPES = {
     'large': {
-        'fixed_cost': 600,      # 元/次
-        'variable_cost': 6.5,   # 元/km
+        'fixed_cost': 600,      # CNY per trip
+        'variable_cost': 6.5,   # CNY per km
         'capacity': 200000      # pcs
     },
-    # Type-l 车型
+    # Type-L vehicle
     'small': {
         'fixed_cost': 300,
         'variable_cost': 4.0,
         'capacity': 80000
     }
-    # Type-S 车型
+    # Type-S vehicle
 }
 
-# 城市分布与仓储成本（CDC 距离 + 仓租 + 站点间固定距离）
+# City geography and warehousing costs (CDC distance + warehouse rent + fixed inter-station distance)
 CITY_PARAMETERS = {
     'A': {
-        'cdc_distance': 40,       # CDC 到 City A 第一个站点的距离 (km)
-        'rent_per_m2': 5.0,        # City A 的单平方米租金 (元/m²/天)
-        'inter_station_distance': 10  # 站点间距离 (km)，选题为简化处理，统一设为10km
+        'cdc_distance': 40,       # Distance from the CDC to the first station in City A (km)
+        'rent_per_m2': 5.0,        # Warehouse rent in City A (CNY/m^2/day)
+        'inter_station_distance': 10  # Inter-station distance (km), fixed at 10 km as a simplifying assumption
     },
     'B': {
         'cdc_distance': 70,
@@ -43,8 +43,8 @@ CITY_PARAMETERS = {
     }
 }
 
-# 站点需求数据
-# 站点数
+# Station-level data
+# Number of stations per city
 CITIES = ['A', 'B', 'C', 'D', 'E']
 STATIONS_PER_CITY = {
     'A': 6,
@@ -54,37 +54,37 @@ STATIONS_PER_CITY = {
     'E': 4
 }
 
-# 各站点日均销量 (万 PCS/天，已经转换为 pcs/天）
+# Average daily sales per station (pcs/day)
 STATION_DEMANDS = {
-    'A': [85000, 80000, 75000, 60000, 55000, 50000],      # City A: 6 个站点，高销量密集区
-    'B': [60000, 55000, 50000, 45000, 40000],           # City B: 5 个站点，中高销量
-    'C': [50000, 45000, 40000, 35000, 30000],           # City C: 5 个站点，中等销量
-    'D': [35000, 30000, 25000, 20000, 15000],           # City D: 5 个站点，中低销量
-    'E': [20000, 15000, 12000, 10000]                 # City E: 4 个站点，低销量，运距远
+    'A': [85000, 80000, 75000, 60000, 55000, 50000],      # City A: 6 stations, dense high-volume cluster
+    'B': [60000, 55000, 50000, 45000, 40000],           # City B: 5 stations, upper-mid volume
+    'C': [50000, 45000, 40000, 35000, 30000],           # City C: 5 stations, mid volume
+    'D': [35000, 30000, 25000, 20000, 15000],           # City D: 5 stations, lower-mid volume
+    'E': [20000, 15000, 12000, 10000]                 # City E: 4 stations, low volume, long haul
 }
 
-# 空间转化关系
-STORAGE_CONVERSION = 1000  # 1000pcs / m²
+# Space conversion factor
+STORAGE_CONVERSION = 1000  # pcs per m^2
 
-# 约束条件
-MAX_STATIONS_PER_TRIP = 3  # 每车最多服务 3 个站点
-LEAD_TIME = 2  # 提前期（天）
+# Constraints
+MAX_STATIONS_PER_TRIP = 3  # A vehicle serves at most 3 stations per trip
+LEAD_TIME = 2  # Replenishment lead time (days)
 
-# ==================== 辅助函数 ====================
+# ==================== Accessor functions ====================
 
 def get_daily_demand(city_code, station_index):
     """
-    获取指定城市指定站点的日均销量
-    
-    参数:
-        city_code: 城市代码 ('A', 'B', 'C', 'D', 'E')
-        station_index: 站点索引 (0-based，如 0 表示第一个站点)
-    
-    返回:
-        日均销量 (pcs/天)
-    
-    示例:
-        >>> get_daily_demand('A', 0)  # City A 第 1 个站点
+    Return the average daily sales of a given station.
+
+    Args:
+        city_code: City identifier ('A', 'B', 'C', 'D', 'E')
+        station_index: Station index (0-based; 0 denotes the first station)
+
+    Returns:
+        Average daily sales (pcs/day)
+
+    Example:
+        >>> get_daily_demand('A', 0)  # First station of City A
         85000
     """
     return STATION_DEMANDS[city_code][station_index]
@@ -92,16 +92,16 @@ def get_daily_demand(city_code, station_index):
 
 def get_city_total_demand(city_code):
     """
-    获取某城市的总日均销量
-    
-    参数:
-        city_code: 城市代码 ('A', 'B', 'C', 'D', 'E')
-    
-    返回:
-        该城市所有站点的日均销量之和 (pcs/天)
-    
-    示例:
-        >>> get_city_total_demand('A')  # City A 所有站点
+    Return the total average daily sales of a city.
+
+    Args:
+        city_code: City identifier ('A', 'B', 'C', 'D', 'E')
+
+    Returns:
+        Sum of average daily sales over all stations in the city (pcs/day)
+
+    Example:
+        >>> get_city_total_demand('A')  # All stations of City A
         405000
     """
     return sum(STATION_DEMANDS[city_code])
@@ -109,54 +109,54 @@ def get_city_total_demand(city_code):
 
 def get_station_count(city_code):
     """
-    获取某城市的站点数量
-    
-    参数:
-        city_code: 城市代码 ('A', 'B', 'C', 'D', 'E')
-    
-    返回:
-        站点数量
+    Return the number of stations in a city.
+
+    Args:
+        city_code: City identifier ('A', 'B', 'C', 'D', 'E')
+
+    Returns:
+        Number of stations
     """
     return STATIONS_PER_CITY[city_code]
 
 
 def get_city_parameters(city_code):
     """
-    获取某城市的所有参数（距离、仓租等）
-    
-    参数:
-        city_code: 城市代码 ('A', 'B', 'C', 'D', 'E')
-    
-    返回:
-        包含该城市所有参数的字典
+    Return all parameters of a city (distances, rent, etc.).
+
+    Args:
+        city_code: City identifier ('A', 'B', 'C', 'D', 'E')
+
+    Returns:
+        Dict containing all parameters of the city
     """
     return CITY_PARAMETERS[city_code]
 
 
 def get_vehicle_type(vehicle_code):
     """
-    获取指定车型的参数
-    
-    参数:
-        vehicle_code: 车型代码 ('large' 或 'small')
-    
-    返回:
-        包含该车型所有参数的字典
+    Return the parameters of a vehicle type.
+
+    Args:
+        vehicle_code: Vehicle identifier ('large' or 'small')
+
+    Returns:
+        Dict containing all parameters of the vehicle type
     """
     return VEHICLE_TYPES[vehicle_code]
 
 
 def get_all_stations(city_code):
     """
-    获取某城市的所有站点列表（带编号）
-    
-    参数:
-        city_code: 城市代码 ('A', 'B', 'C', 'D', 'E')
-    
-    返回:
-        站点列表，如 ['A_1', 'A_2', ..., 'A_6']
-    
-    示例:
+    Return the list of all stations in a city (with indices).
+
+    Args:
+        city_code: City identifier ('A', 'B', 'C', 'D', 'E')
+
+    Returns:
+        Station list, e.g. ['A_1', 'A_2', ..., 'A_6']
+
+    Example:
         >>> get_all_stations('A')
         ['A_1', 'A_2', 'A_3', 'A_4', 'A_5', 'A_6']
     """
