@@ -10,7 +10,7 @@ plt.rcParams['font.size'] = 9
 COLOR_STORAGE = '#E07A5F'
 COLOR_TRANSPORT = '#3D405B'
 
-with open('figures/data.json', 'r') as f:
+with open('data/results.json', 'r') as f:
     data = json.load(f)
 
 fig, ax = plt.subplots(figsize=(7, 5), dpi=300)
@@ -63,7 +63,7 @@ ax.legend(loc='upper right', frameon=False, fontsize=9,
 ax.set_ylim(0, 11000)
 
 plt.tight_layout()
-plt.savefig('figures/fix_fig2.pdf', bbox_inches='tight', pad_inches=0.05)
-plt.savefig('figures/fix_fig2.png', dpi=300, bbox_inches='tight', pad_inches=0.05)
+plt.savefig('figures/fig2.pdf', bbox_inches='tight', pad_inches=0.05)
+plt.savefig('figures/fig2.png', dpi=300, bbox_inches='tight', pad_inches=0.05)
 plt.close()
 print('Fig 2 fixed and saved.')

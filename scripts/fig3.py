@@ -19,7 +19,7 @@ COLOR_TOTAL = '#81B29A'
 cities = ['A', 'B', 'C', 'D', 'E']
 
 import json
-with open('figures/data.json', 'r') as f:
+with open('data/results.json', 'r') as f:
     _data = json.load(f)
 _optimal_T_map = {c: _data['cities'][c]['optimal_T'] for c in cities}
 T_range = np.arange(1, 8)
@@ -102,7 +102,7 @@ fig.legend(handles, labels, loc='lower center', ncol=3, frameon=False,
            handletextpad=1.0)
 
 plt.tight_layout(rect=[0, 0.06, 1, 0.97])
-plt.savefig('figures/fix_fig3.pdf', bbox_inches='tight', pad_inches=0.05)
-plt.savefig('figures/fix_fig3.png', dpi=300, bbox_inches='tight', pad_inches=0.05)
+plt.savefig('figures/fig3.pdf', bbox_inches='tight', pad_inches=0.05)
+plt.savefig('figures/fig3.png', dpi=300, bbox_inches='tight', pad_inches=0.05)
 plt.close()
 print('Fig 3 (all cities) saved.')

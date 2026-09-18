@@ -1,9 +1,12 @@
-# 美团物流优化系统 | Meituan Logistics Optimization
+# 美团城市群零售网络物流与库存联合优化
+
+**Meituan Multi-City Joint Inventory–Routing Optimization**
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue)
+![Tests](https://github.com/Kaelyn01/meituan-logistics-optimization/actions/workflows/tests.yml/badge.svg)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## 🌐 English Abstract
+## 📝 English Abstract
 
 This repository provides a **joint inventory–routing optimization framework** for a multi-city fresh-food logistics network. Given one central distribution center (CDC) and five satellite cities (25 retail stations in total), the model determines the optimal replenishment cycle $T^* \in \{1,\dots,7\}$ for each city and the corresponding vehicle routing plans. The objective is to minimize the sum of daily inventory holding and transportation costs. A complete enumeration of all $7^5 = 16{,}807$ global $T$-combinations guarantees system-wide optimality. The best policy achieves a total daily cost of **24,874 CNY**, outperforming uniform-$T$ baselines by up to **80.6%**.
 
@@ -24,41 +27,34 @@ This repository provides a **joint inventory–routing optimization framework** 
 Min Total Cost = Σ(日均运输成本 + 日均仓储成本)
 ```
 
-## 项目结构
+## 核心结果
 
 ```
-meituan_logistics_optimization/
-├── config/                     # 配置模块
-│   ├── __init__.py
-│   └── parameters.py           # 固定参数（车型、城市距离、站点需求等）
-├── models/                     # 成本计算模型
-│   ├── __init__.py
-│   └── cost_models.py          # 仓储成本 + 运输成本计算
-├── optimization/               # 优化算法模块
-│   ├── __init__.py
-│   ├── route_optimizer.py      # 路径优化（站点分组 + 车辆调度）
-│   ├── inventory_optimizer.py  # 库存优化（单城市最优 T 搜索）
-│   └── global_search.py        # 全局寻优（16807 种组合枚举）
-├── figures/                    # 图表生成脚本与输出
-│   ├── data.json               # 各城市最优数据（供图表与论文使用）
-│   ├── fix_fig*.py             # 图片生成脚本
-│   └── *.png / *.pdf           # 最终图表
-├── report/                     # 学术论文
-│   ├── main.tex                # 英文论文源文件
-│   ├── main.pdf                # 英文论文 PDF
-│   ├── main_cn.tex             # 中文论文源文件
-│   ├── main_cn.pdf             # 中文论文 PDF
-│   └── figures/                # 论文嵌入图片
-├── output/                     # 输出目录
-│   ├── *.json                  # 最优解 / Top 10 方案
-│   ├── *.txt                   # 文本格式优化报告
-│   └── logs/                   # 运行日志
-├── main.py                     # 主程序入口
-├── test_config.py              # 配置参数测试
-└── test_cost_models.py         # 成本计算测试
+🎯 全局最优方案:
+   City A: T=1天, 日成本=9,130元
+   City B: T=1天, 日成本=6,215元
+   City C: T=2天, 日成本=4,915元
+   City D: T=3天, 日成本=2,928元
+   City E: T=6天, 日成本=1,686元
+
+💰 系统日总成本最小值: 24,874 元
+   - 总仓储成本: 13,409 元 (53.9%)
+   - 总运输成本: 11,465 元 (46.1%)
 ```
+
+相比所有城市统一周期的 uniform-$T$ 基线方案，总成本最多降低 **80.6%**。
+
+**装载率洞察**：城市 B 中站点 `[B_4, B_5]` 采用大车配送时装载率仅为 42.5%，反映出远距离低需求站点组合容易出现运力闲置；而城市 A 的 `[A_3, A_4, A_5]` 大车装载率高达 95%，说明高需求密集区的分组能充分利用运力。
 
 ## 快速开始
+
+### 安装
+
+```bash
+git clone https://github.com/Kaelyn01/meituan-logistics-optimization.git
+cd meituan-logistics-optimization
+pip install -r requirements.txt
+```
 
 ### 运行优化
 
@@ -75,42 +71,67 @@ python main.py
 ### 运行测试
 
 ```bash
-# 测试配置参数
-python test_config.py
-
-# 测试成本计算
-python test_cost_models.py
+python -m pytest tests/ -v
 ```
 
 ### 重新生成图表
 
 ```bash
-python figures/fix_fig1.py
-python figures/fix_fig2.py
-python figures/fix_fig3.py
-python figures/fix_fig4.py
-python figures/combine_fig1_fig2.py
+python scripts/fig1.py
+python scripts/fig2.py
+python scripts/fig3.py
+python scripts/fig4.py
+python scripts/combine_fig1_fig2.py
+```
+
+图表输出到 `figures/`，论文按相对路径 `../figures/` 引用。
+
+## 项目结构
+
+```
+meituan-logistics-optimization/
+├── main.py                     # 主程序入口
+├── config/                     # 配置模块
+│   └── parameters.py           # 固定参数（车型、城市距离、站点需求等）
+├── models/                     # 成本计算模型
+│   └── cost_models.py          # 仓储成本 + 运输成本计算
+├── optimization/               # 优化算法模块
+│   ├── route_optimizer.py      # 路径优化（站点分组 + 车辆调度）
+│   ├── inventory_optimizer.py  # 库存优化（单城市最优 T 搜索）
+│   └── global_search.py        # 全局寻优（16807 种组合枚举）
+├── tests/                      # 单元测试
+│   ├── test_config.py          # 配置参数测试
+│   └── test_cost_models.py     # 成本计算测试
+├── scripts/                    # 图表生成脚本
+│   ├── fig1.py ~ fig4.py       # 单图生成
+│   └── combine_fig1_fig2.py    # 论文双栏组合图
+├── data/
+│   └── results.json            # 各城市最优解数据（供图表与论文使用）
+├── figures/                    # 生成的图表（png / pdf）
+├── report/                     # 学术论文（英文）
+│   ├── main.tex                # LaTeX 源文件
+│   └── main.pdf                # 编译后 PDF
+└── output/                     # 运行时输出（最优解 / Top 10 / 日志，已 gitignore）
 ```
 
 ## 核心模块说明
 
-### 1. `route_optimizer.py`
+### `route_optimizer.py` — 路径优化
 
-- **功能**: 站点分组优化 + 车辆调度
-- **算法**: 回溯法枚举所有合法分组（每组 ≤3 站点），选择总成本最低的方案
-- **特色**: 支持多车配送（当单站点需求 × T > 20万时自动拆分），并输出每辆车的逐站装载率变化（卸货前/后装载率）
+- **算法**：回溯法枚举所有合法分组（每组 ≤3 站点），选择总成本最低的方案
+- **特色**：支持多车配送（当单站点需求 × T > 20万时自动拆分），并输出每辆车的逐站装载率变化（卸货前/后装载率）
 
-### 2. `inventory_optimizer.py`
+### `inventory_optimizer.py` — 库存优化
 
-- **功能**: 单城市最优订货周期搜索
-- **算法**: 遍历 T=1~7，计算每个周期下的总成本
-- **输出**: 最优 T、成本明细、各 T 值对比
+- **算法**：遍历 T=1~7，计算每个周期下的总成本
+- **输出**：最优 T、成本明细、各 T 值对比
 
-### 3. `global_search.py`
+### `global_search.py` — 全局寻优
 
-- **功能**: 全局最优解搜索
-- **算法**: 暴力枚举 16,807 种 T 组合（5个城市 × 7种周期）
-- **输出**: 全局最优方案 + Top 10 备选方案
+- **算法**：暴力枚举 16,807 种 T 组合（5 个城市 × 7 种周期）
+- **输出**：全局最优方案 + Top 10 备选方案
+
+**算法复杂度**：站点分组 $O(B_n)$（贝尔数，6 站点约 203 种分组）；全局搜索 $O(7^5 \times 5 \times B_6) \approx 340$ 万次计算，现代计算机秒级完成。
 
 ## 数据说明
 
@@ -139,59 +160,40 @@ python figures/combine_fig1_fig2.py
 - 同一城市所有站点必须相同 T
 - 车辆必须返回主城
 
-## 最优结果示例
-
-```
-🎯 全局最优方案:
-   City A: T=1天, 日成本=9,130元
-   City B: T=1天, 日成本=6,215元
-   City C: T=2天, 日成本=4,915元
-   City D: T=3天, 日成本=2,928元
-   City E: T=6天, 日成本=1,686元
-
-💰 系统日总成本最小值: 24,874 元
-   - 总仓储成本: 13,409 元 (53.9%)
-   - 总运输成本: 11,465 元 (46.1%)
-```
-
-**装载率洞察示例**：城市 B 中站点 `[B_4, B_5]` 采用大车配送时装载率仅为 42.5%，反映出远距离低需求站点组合容易出现运力闲置；而城市 A 的 `[A_3, A_4, A_5]` 大车装载率高达 95%，说明高需求密集区的分组能充分利用运力。
-
-## 生成图表一览
+## 生成图表
 
 | 图表 | 说明 | 生成脚本 |
 | --- | --- | --- |
-| Fig 1 | 物流网络拓扑与最优配置 | `figures/fix_fig1.py` |
-| Fig 2 | 各城市最优日成本分解 | `figures/fix_fig2.py` |
-| Fig 3 | 五城市 T 敏感性分析 (2×3) | `figures/fix_fig3.py` |
-| Fig 4 | 全局 Top-10 与 uniform-T 对比 | `figures/fix_fig4.py` |
-| Fig 1+2 | 组合图（用于论文双栏排版） | `figures/combine_fig1_fig2.py` |
+| Fig 1 | 物流网络拓扑与最优配置 | `scripts/fig1.py` |
+| Fig 2 | 各城市最优日成本分解 | `scripts/fig2.py` |
+| Fig 3 | 五城市 T 敏感性分析 (2×3) | `scripts/fig3.py` |
+| Fig 4 | 全局 Top-10 与 uniform-T 对比 | `scripts/fig4.py` |
+| Fig 1+2 | 组合图（论文双栏排版） | `scripts/combine_fig1_fig2.py` |
 
 ## 学术论文
 
 | 版本 | 文件 |
 | --- | --- |
 | 英文版 | [report/main.pdf](report/main.pdf) |
-| 中文版 | [report/main_cn.pdf](report/main_cn.pdf) |
 
-两版论文均包含数学模型、算法伪代码、敏感性分析及管理启示。
+论文包含数学模型、算法伪代码、敏感性分析及管理启示，LaTeX 源文件见 `report/main.tex`。
 
 ## 输出文件
 
-运行后会生成以下文件到 `output/` 目录：
+运行 `python main.py` 后生成到 `output/` 目录：
 
 | 文件 | 说明 |
 | --- | --- |
-| `optimal_solution_*.json` | 最优解详细信息（JSON格式） |
+| `optimal_solution_*.json` | 最优解详细信息（JSON 格式） |
 | `top_solutions_*.json` | Top 10 方案列表 |
 | `optimization_report_*.txt` | 文本格式优化报告（含详细车辆调度） |
 
 ## 依赖
 
-- Python 3.8+
-- 仅使用标准库（无第三方依赖）
-- LaTeX 编译环境（MacTeX / TeX Live），用于生成论文 PDF
+- Python 3.10+
+- [requirements.txt](requirements.txt)：numpy、matplotlib
+- LaTeX 编译环境（MacTeX / TeX Live，可选，仅编译论文时需要）
 
-## 算法复杂度
+## License
 
-- **站点分组**: $O(B_n)$，其中 $B_n$ 是贝尔数（6个站点约 203 种分组）
-- **全局搜索**: $O(7^5 \times 5 \times B_6) \approx 340$ 万次计算（现代计算机秒级完成）
+[MIT](LICENSE)
